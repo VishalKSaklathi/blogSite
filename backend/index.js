@@ -8,7 +8,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+    dotenv.config();
+}
 
 const app = express();
 const PORT = 3000;

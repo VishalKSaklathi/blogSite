@@ -1,19 +1,22 @@
-// backend/config/db.js
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+    dotenv.config();
+}
 
-const sequelize = new Sequelize(
-    process.env.PGDATABASE,   // database name
-    process.env.PGUSER,       // username
-    process.env.PGPASSWORD,   // password
-    {
-        host: process.env.PGHOST,
-        dialect: "postgres",    // tells Sequelize to use pgsql
-        port: process.env.PGPORT,
-        logging: false,         // disable SQL logs (optional)
-    }
-);
 
+// 🔥 Make sure this exists
+const sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: "postgres",
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false,
+        },
+    },
+    logging: false,
+});
+
+// 🔥 Export THIS object
 export default sequelize;
