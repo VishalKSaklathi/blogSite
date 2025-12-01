@@ -2,8 +2,6 @@ import * as React from "react"
 import {
   GalleryVerticalEnd,
   Home,
-  Folder,
-  Clock,
   Layers,
 } from "lucide-react"
 
@@ -120,7 +118,7 @@ export function AppSidebar({ ...props }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="#">
+              <Link to="#">
                 <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <GalleryVerticalEnd className="size-4" />
                 </div>
@@ -128,7 +126,7 @@ export function AppSidebar({ ...props }) {
                   <span className="font-medium">BlogSite</span>
                   <span className="">v1.0.0</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -140,10 +138,10 @@ export function AppSidebar({ ...props }) {
             {navMain.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url} className="font-medium flex items-center gap-2">
+                  <Link to={item.url} className="font-medium flex items-center gap-2">
                     <item.icon className="size-4" />
                     {item.title}
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
 
                 {item.items?.length ? (
