@@ -17,7 +17,6 @@ function ViewBlog() {
     const [isLoading, setIsLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
 
-    // Fetch blog and comments initially
     useEffect(() => {
         const fetchBlogData = async () => {
             setIsLoading(true);
@@ -40,7 +39,6 @@ function ViewBlog() {
         fetchBlogData();
     }, [id]);
 
-    // Handle new comment
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
         if (!comment.trim()) return;
@@ -59,7 +57,6 @@ function ViewBlog() {
         }
     };
 
-    // Upvote
     const handleUpvote = async () => {
         try {
             const res = await voteCommentService.upvoteBlog(id);
@@ -69,7 +66,6 @@ function ViewBlog() {
         }
     };
 
-    // Downvote
     const handleDownvote = async () => {
         try {
             const res = await voteCommentService.downvoteBlog(id);
@@ -81,10 +77,10 @@ function ViewBlog() {
 
     if (isLoading) {
         return (
-            <div className="max-w-5xl mx-auto px-6 py-10 flex justify-center items-center min-h-screen">
+            <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-10 flex justify-center items-center min-h-screen">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Loading blog...</p>
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-sm sm:text-base text-muted-foreground">Loading blog...</p>
                 </div>
             </div>
         );
@@ -92,62 +88,64 @@ function ViewBlog() {
 
     if (!blog || !blog.id) {
         return (
-            <div className="max-w-5xl mx-auto px-6 py-10">
+            <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
                 <p className="text-center text-muted-foreground">Blog not found.</p>
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6 sm:py-10">
             {/* Back Link */}
             <Link
                 to="/blogs"
-                className="inline-flex items-center text-primary hover:underline text-sm font-medium mb-6"
+                className="inline-flex items-center text-primary hover:underline text-xs sm:text-sm font-medium mb-4 sm:mb-6"
             >
                 ← Back to Blogs
             </Link>
 
             {/* Featured Image */}
             {blog.imageUrl && !imageError && (
-                <div className="mb-6 rounded-xl overflow-hidden border border-border">
+                <div className="mb-4 sm:mb-6 rounded-lg sm:rounded-xl overflow-hidden border border-border">
                     <img
                         src={blog.imageUrl}
                         alt={blog.title}
-                        className="w-full h-auto max-h-[500px] object-cover"
+                        className="w-full h-auto max-h-[300px] sm:max-h-[500px] object-cover"
                         onError={() => setImageError(true)}
                     />
                 </div>
             )}
 
             {/* Title */}
-            <h1 className="text-4xl font-bold mt-4 mb-4 text-foreground">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mt-3 sm:mt-4 mb-3 sm:mb-4 text-foreground">
                 {blog.title}
             </h1>
 
             {/* Meta Information */}
-            <div className="flex items-center gap-6 text-sm text-muted-foreground mb-6">
-                <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>{blog.author || "Anonymous"}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{new Date(blog.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    })}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="text-xs sm:text-sm">
+                        {new Date(blog.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        })}
+                    </span>
                 </div>
             </div>
 
             {/* Categories */}
             {blog.categories && blog.categories.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                     {blog.categories.map((category) => (
                         <span
                             key={category.id}
-                            className="px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
+                            className="px-2.5 sm:px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary"
                             style={{
                                 backgroundColor: category.color ? `${category.color}20` : undefined,
                                 color: category.color || undefined
@@ -159,49 +157,49 @@ function ViewBlog() {
                 </div>
             )}
 
-            <Separator className="my-6" />
+            <Separator className="my-4 sm:my-6" />
 
             {/* Blog Content */}
             <div
-                className="prose prose-lg max-w-none text-justify leading-relaxed mb-8"
+                className="prose prose-sm sm:prose-base md:prose-lg max-w-none text-justify leading-relaxed mb-6 sm:mb-8"
                 dangerouslySetInnerHTML={{ __html: blog.content }}
             ></div>
 
-            <Separator className="my-6" />
+            <Separator className="my-4 sm:my-6" />
 
             {/* Upvote / Downvote Section */}
-            <div className="flex items-center gap-4 my-6">
+            <div className="flex items-center gap-3 sm:gap-4 my-4 sm:my-6">
                 <button
                     onClick={handleUpvote}
-                    className="flex items-center cursor-pointer gap-2 px-4 py-2 rounded-full border border-border text-sm font-medium text-foreground hover:bg-green-50 hover:text-green-600 hover:border-green-600 transition-all"
+                    className="flex items-center cursor-pointer gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-border text-xs sm:text-sm font-medium text-foreground hover:bg-green-50 hover:text-green-600 hover:border-green-600 transition-all"
                 >
-                    <ThumbsUp className="w-5 h-5" />
+                    <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>{votes.up}</span>
                 </button>
 
                 <button
                     onClick={handleDownvote}
-                    className="flex items-center cursor-pointer gap-2 px-4 py-2 rounded-full border border-border text-sm font-medium text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-600 transition-all"
+                    className="flex items-center cursor-pointer gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-border text-xs sm:text-sm font-medium text-foreground hover:bg-red-50 hover:text-red-600 hover:border-red-600 transition-all"
                 >
-                    <ThumbsDown className="w-5 h-5" />
+                    <ThumbsDown className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span>{votes.down}</span>
                 </button>
             </div>
 
-            <Separator className="my-6" />
+            <Separator className="my-4 sm:my-6" />
 
             {/* Author Section */}
-            <div className="flex items-center gap-4 mb-8 p-4 rounded-lg bg-secondary/50">
-                <Avatar className="w-14 h-14">
-                    <AvatarFallback className="bg-secondary text-primary">
+            <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 p-3 sm:p-4 rounded-lg bg-secondary/50">
+                <Avatar className="w-10 h-10 sm:w-14 sm:h-14">
+                    <AvatarFallback className="bg-secondary text-primary text-sm sm:text-base">
                         {blog.author ? blog.author.charAt(0).toUpperCase() : "A"}
                     </AvatarFallback>
                 </Avatar>
                 <div>
-                    <p className="text-lg font-semibold text-foreground">
+                    <p className="text-base sm:text-lg font-semibold text-foreground">
                         {blog.author || "Anonymous Author"}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                         Posted on {new Date(blog.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
@@ -212,21 +210,21 @@ function ViewBlog() {
             </div>
 
             {/* Comment Section */}
-            <div className="mt-8">
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">
+            <div className="mt-6 sm:mt-8">
+                <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4 text-foreground">
                     Comments ({comments.length})
                 </h2>
 
                 {/* Comment Form */}
-                <div className="bg-card border border-border rounded-lg p-4 mb-6">
-                    <form onSubmit={handleCommentSubmit} className="flex flex-col gap-3">
+                <div className="bg-card border border-border rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+                    <form onSubmit={handleCommentSubmit} className="flex flex-col gap-2 sm:gap-3">
                         <Textarea
                             placeholder="Share your thoughts..."
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            className="min-h-[120px] bg-background"
+                            className="min-h-[100px] sm:min-h-[120px] bg-background text-sm sm:text-base"
                         />
-                        <Button type="submit" className="self-end">
+                        <Button type="submit" className="self-end text-sm sm:text-base">
                             Post Comment
                         </Button>
                     </form>
@@ -234,18 +232,18 @@ function ViewBlog() {
 
                 {/* Display Comments */}
                 {comments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        <p className="text-lg">No comments yet.</p>
-                        <p className="text-sm">Be the first to share your thoughts!</p>
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                        <p className="text-base sm:text-lg">No comments yet.</p>
+                        <p className="text-xs sm:text-sm">Be the first to share your thoughts!</p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-4">
+                    <ul className="flex flex-col gap-3 sm:gap-4">
                         {comments.map((c, i) => (
                             <li
                                 key={i}
-                                className="bg-card border border-border rounded-lg p-4 transition-all hover:border-primary/50"
+                                className="bg-card border border-border rounded-lg p-3 sm:p-4 transition-all hover:border-primary/50"
                             >
-                                <div className="flex items-start gap-3">
+                                <div className="flex items-start gap-2 sm:gap-3">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className="text-xs text-muted-foreground">
@@ -258,7 +256,7 @@ function ViewBlog() {
                                                 })}
                                             </span>
                                         </div>
-                                        <p className="text-foreground leading-relaxed">
+                                        <p className="text-sm sm:text-base text-foreground leading-relaxed">
                                             {c.content}
                                         </p>
                                     </div>

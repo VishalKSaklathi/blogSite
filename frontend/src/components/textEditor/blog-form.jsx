@@ -4,88 +4,6 @@ import { useNavigate } from "react-router-dom";
 import blogService from "@/services/blogServices";
 import categoryService from "@/services/categoryService";
 
-// Blog Service
-// const API_BASE = import.meta.env?.VITE_API_BASE || 'http://localhost:3000';
-
-// class BlogService {
-//     constructor() {
-//         this.baseURL = `${API_BASE}/api/blogs`;
-//     }
-
-//     async makeRequest(url, options = {}) {
-//         try {
-//             const config = {
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     ...options.headers
-//                 },
-//                 ...options
-//             };
-
-//             const response = await fetch(url, config);
-//             const data = await response.json();
-//             if (!response.ok) {
-//                 throw new Error(data.message || `HTTP error! status: ${response.status}`);
-//             }
-//             return data;
-//         } catch (error) {
-//             console.error('API Request Error:', error);
-//             throw error;
-//         }
-//     }
-
-//     async createBlog(blogData) {
-//         const response = await this.makeRequest(this.baseURL, {
-//             method: 'POST',
-//             body: JSON.stringify(blogData)
-//         });
-//         return response;
-//     }
-// }
-
-// // Category Service
-// class CategoryService {
-//     constructor() {
-//         this.baseURL = `${API_BASE}/api/categories`;
-//     }
-
-//     async makeRequest(url, options = {}) {
-//         try {
-//             const config = {
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     ...options.headers
-//                 },
-//                 ...options
-//             };
-
-//             const response = await fetch(url, config);
-//             const data = await response.json();
-//             if (!response.ok) {
-//                 throw new Error(data.message || `HTTP error! status: ${response.status}`);
-//             }
-//             return data;
-//         } catch (error) {
-//             console.error('API Request Error:', error);
-//             throw error;
-//         }
-//     }
-
-//     async getAllCategories() {
-//         return await this.makeRequest(this.baseURL);
-//     }
-
-//     async createCategory(categoryData) {
-//         return await this.makeRequest(this.baseURL, {
-//             method: 'POST',
-//             body: JSON.stringify(categoryData)
-//         });
-//     }
-// }
-
-// const blogService = new BlogService();
-// const categoryService = new CategoryService();
-
 function BlogForm() {
     const navigate = useNavigate();
     const [data, setData] = useState({
@@ -97,6 +15,7 @@ function BlogForm() {
     });
 
     const [categories, setCategories] = useState([]);
+    const [pendingCategories, setPendingCategories] = useState([]); // New categories to create on submit
     const [showNewCategory, setShowNewCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -122,9 +41,7 @@ function BlogForm() {
         }
     };
 
-    // Helper function to trigger sidebar refresh
     const triggerSidebarRefresh = () => {
-        // Dispatch custom event that sidebar will listen to
         window.dispatchEvent(new CustomEvent('refreshCategories'));
     };
 
@@ -136,13 +53,6 @@ function BlogForm() {
         }));
     };
 
-    // const handleFileChange = (e) => {
-    //     setData((prev) => ({
-    //         ...prev,
-    //         image: e.target.files[0]
-    //     }));
-    // };
-
     const toggleCategory = (categoryId) => {
         setData((prev) => ({
             ...prev,
@@ -152,39 +62,43 @@ function BlogForm() {
         }));
     };
 
-    const handleCreateNewCategory = async () => {
+    const togglePendingCategory = (tempId) => {
+        setData((prev) => ({
+            ...prev,
+            categoryIds: prev.categoryIds.includes(tempId)
+                ? prev.categoryIds.filter(id => id !== tempId)
+                : [...prev.categoryIds, tempId]
+        }));
+    };
+
+    const handleCreateNewCategory = () => {
         if (!newCategoryName.trim()) {
             alert("⚠️ Please enter a category name");
             return;
         }
 
-        try {
-            const response = await categoryService.createCategory({
-                name: newCategoryName.trim(),
-                color: "#3B82F6"
-            });
+        // Create temporary ID for the pending category
+        const tempId = `temp-${Date.now()}`;
+        const newPendingCategory = {
+            id: tempId,
+            name: newCategoryName.trim(),
+            color: "#3B82F6",
+            isPending: true
+        };
 
-            const newCategory = response.data || response;
-            setCategories([...categories, newCategory]);
-            setData(prev => ({
-                ...prev,
-                categoryIds: [...prev.categoryIds, newCategory.id]
-            }));
+        // Add to pending categories list
+        setPendingCategories(prev => [...prev, newPendingCategory]);
 
-            setNewCategoryName("");
-            setShowNewCategory(false);
-            // Trigger sidebar refresh after creating new category
-            triggerSidebarRefresh();
+        // Auto-select the new category
+        setData(prev => ({
+            ...prev,
+            categoryIds: [...prev.categoryIds, tempId]
+        }));
 
-            alert("✅ Category created successfully!");
-
-        } catch (error) {
-            console.error("Error creating category:", error);
-            alert("❌ Failed to create category: " + error.message);
-        }
+        setNewCategoryName("");
+        setShowNewCategory(false);
     };
 
-    // Rich Text Editor Functions
     const applyFormat = (command, value = null) => {
         document.execCommand(command, false, value);
         editorRef.current?.focus();
@@ -209,7 +123,6 @@ function BlogForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validation
         if (!data.title.trim()) {
             alert("⚠️ Please enter a title");
             return;
@@ -227,22 +140,47 @@ function BlogForm() {
         setError(null);
 
         try {
+            // First, create all pending categories
+            const createdCategoryIds = [];
+
+            for (const pendingCat of pendingCategories) {
+                // Only create categories that are selected
+                if (data.categoryIds.includes(pendingCat.id)) {
+                    try {
+                        const response = await categoryService.createCategory({
+                            name: pendingCat.name,
+                            color: pendingCat.color
+                        });
+                        const createdCategory = response.data || response;
+                        createdCategoryIds.push({
+                            tempId: pendingCat.id,
+                            realId: createdCategory.id
+                        });
+                    } catch (error) {
+                        console.error("Error creating category:", error);
+                        throw new Error(`Failed to create category "${pendingCat.name}": ${error.message}`);
+                    }
+                }
+            }
+
+            // Replace temp IDs with real IDs in categoryIds
+            let finalCategoryIds = data.categoryIds.map(id => {
+                const created = createdCategoryIds.find(c => c.tempId === id);
+                return created ? created.realId : id;
+            }).filter(id => !id.toString().startsWith('temp-')); // Remove any remaining temp IDs
+
             const blogData = {
                 title: data.title.trim(),
                 content: data.content.trim(),
                 author: data.author.trim(),
-                categoryIds: data.categoryIds,
+                categoryIds: finalCategoryIds,
                 imageUrl: data.imageUrl.trim() || null
             };
 
             const response = await blogService.createBlog(blogData);
-
-            // Trigger sidebar refresh after creating new category
             triggerSidebarRefresh();
-
             console.log("Blog created:", response);
             alert("✅ Blog Posted Successfully!");
-
 
             // Reset form
             setData({
@@ -252,6 +190,7 @@ function BlogForm() {
                 imageUrl: "",
                 categoryIds: []
             });
+            setPendingCategories([]); // Clear pending categories
             if (editorRef.current) {
                 editorRef.current.innerHTML = '';
             }
@@ -273,6 +212,7 @@ function BlogForm() {
             imageUrl: "",
             categoryIds: []
         });
+        setPendingCategories([]); // Clear pending categories
         if (editorRef.current) {
             editorRef.current.innerHTML = '';
         }
@@ -280,27 +220,27 @@ function BlogForm() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-4 sm:py-8 px-3 sm:px-4">
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-4 p-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Create a post</h1>
-                    <p className="text-sm text-slate-600 mt-1">Share your thoughts with the community</p>
+                <div className="bg-white rounded-lg shadow-sm border border-slate-200 mb-3 sm:mb-4 p-4 sm:p-6">
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Create a post</h1>
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1">Share your thoughts with the community</p>
                 </div>
 
                 {/* Error Message */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                        <p className="text-sm text-red-800">{error}</p>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                        <p className="text-xs sm:text-sm text-red-800">{error}</p>
                     </div>
                 )}
 
                 {/* Form Container */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                     {/* Title Input */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <label className="text-sm font-semibold text-slate-900">Title</label>
+                            <label className="text-xs sm:text-sm font-semibold text-slate-900">Title</label>
                         </div>
                         <input
                             type="text"
@@ -309,16 +249,16 @@ function BlogForm() {
                             value={data.title}
                             onChange={handleChange}
                             required
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            className="w-full px-3 sm:px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
 
                     {/* Categories Multi-Select */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
-                                <Tags className="w-4 h-4 text-blue-600" />
-                                <label className="text-sm font-semibold text-slate-900">Categories</label>
+                                <Tags className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                                <label className="text-xs sm:text-sm font-semibold text-slate-900">Categories</label>
                             </div>
                             <button
                                 type="button"
@@ -326,25 +266,26 @@ function BlogForm() {
                                 className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 transition-colors"
                             >
                                 <Plus className="w-3 h-3" />
-                                New Category
+                                <span className="hidden sm:inline">New Category</span>
+                                <span className="sm:hidden">New</span>
                             </button>
                         </div>
 
                         {/* New Category Input */}
                         {showNewCategory && (
-                            <div className="mb-3 p-3 bg-slate-50 rounded-md border border-slate-200">
+                            <div className="mb-3 p-2 sm:p-3 bg-slate-50 rounded-md border border-slate-200">
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
                                         placeholder="Category name..."
                                         value={newCategoryName}
                                         onChange={(e) => setNewCategoryName(e.target.value)}
-                                        className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="flex-1 px-2 sm:px-3 py-1.5 bg-white border border-slate-300 rounded text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                     <button
                                         type="button"
                                         onClick={handleCreateNewCategory}
-                                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                                        className="px-2 sm:px-3 py-1.5 bg-blue-600 text-white rounded text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors"
                                     >
                                         Add
                                     </button>
@@ -354,9 +295,9 @@ function BlogForm() {
                                             setShowNewCategory(false);
                                             setNewCategoryName("");
                                         }}
-                                        className="px-3 py-1.5 bg-slate-100 border border-slate-300 rounded text-sm hover:bg-slate-200 transition-colors"
+                                        className="px-2 sm:px-3 py-1.5 bg-slate-100 border border-slate-300 rounded text-xs sm:text-sm hover:bg-slate-200 transition-colors"
                                     >
-                                        <X className="w-4 h-4" />
+                                        <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                     </button>
                                 </div>
                             </div>
@@ -364,108 +305,127 @@ function BlogForm() {
 
                         {/* Category Pills */}
                         {isLoadingCategories ? (
-                            <div className="text-sm text-slate-600">Loading categories...</div>
+                            <div className="text-xs sm:text-sm text-slate-600">Loading categories...</div>
                         ) : (
                             <div className="flex flex-wrap gap-2">
-                                {categories.length === 0 ? (
-                                    <p className="text-sm text-slate-500">No categories available. Create one!</p>
+                                {categories.length === 0 && pendingCategories.length === 0 ? (
+                                    <p className="text-xs sm:text-sm text-slate-500">No categories available. Create one!</p>
                                 ) : (
-                                    categories.map((category) => (
-                                        <button
-                                            key={category.id}
-                                            type="button"
-                                            onClick={() => toggleCategory(category.id)}
-                                            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${data.categoryIds.includes(category.id)
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-slate-100 text-slate-700 border border-slate-300 hover:border-blue-500"
-                                                }`}
-                                        >
-                                            {category.name}
-                                        </button>
-                                    ))
+                                    <>
+                                        {/* Existing Categories */}
+                                        {categories.map((category) => (
+                                            <button
+                                                key={category.id}
+                                                type="button"
+                                                onClick={() => toggleCategory(category.id)}
+                                                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${data.categoryIds.includes(category.id)
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-slate-100 text-slate-700 border border-slate-300 hover:border-blue-500"
+                                                    }`}
+                                            >
+                                                {category.name}
+                                            </button>
+                                        ))}
+
+                                        {/* Pending Categories (shown with indicator) */}
+                                        {pendingCategories.map((category) => (
+                                            <button
+                                                key={category.id}
+                                                type="button"
+                                                onClick={() => togglePendingCategory(category.id)}
+                                                className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer flex items-center gap-1 ${data.categoryIds.includes(category.id)
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-slate-100 text-slate-700 border border-slate-300 hover:border-blue-500"
+                                                    }`}
+                                            >
+                                                {category.name}
+                                                <span className="text-[10px] opacity-75">(new)</span>
+                                            </button>
+                                        ))}
+                                    </>
                                 )}
                             </div>
                         )}
                     </div>
 
                     {/* Rich Text Editor */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <label className="text-sm font-semibold text-slate-900">Content</label>
+                            <label className="text-xs sm:text-sm font-semibold text-slate-900">Content</label>
                         </div>
 
                         {/* Toolbar */}
-                        <div className="flex flex-wrap gap-1 p-2 bg-slate-50 border border-slate-300 rounded-t-md">
+                        <div className="flex flex-wrap gap-0.5 sm:gap-1 p-1.5 sm:p-2 bg-slate-50 border border-slate-300 rounded-t-md overflow-x-auto">
                             <button
                                 type="button"
                                 onClick={() => applyFormat('bold')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Bold"
                             >
-                                <Bold className="w-4 h-4 text-slate-700" />
+                                <Bold className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('italic')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Italic"
                             >
-                                <Italic className="w-4 h-4 text-slate-700" />
+                                <Italic className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('underline')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Underline"
                             >
-                                <Underline className="w-4 h-4 text-slate-700" />
+                                <Underline className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
-                            <div className="w-px bg-slate-300 mx-1"></div>
+                            <div className="w-px bg-slate-300 mx-0.5 sm:mx-1"></div>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('insertUnorderedList')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Bullet List"
                             >
-                                <List className="w-4 h-4 text-slate-700" />
+                                <List className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('insertOrderedList')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Numbered List"
                             >
-                                <ListOrdered className="w-4 h-4 text-slate-700" />
+                                <ListOrdered className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
-                            <div className="w-px bg-slate-300 mx-1"></div>
+                            <div className="w-px bg-slate-300 mx-0.5 sm:mx-1"></div>
                             <button
                                 type="button"
                                 onClick={insertLink}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Insert Link"
                             >
-                                <Link className="w-4 h-4 text-slate-700" />
+                                <Link className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('formatBlock', 'blockquote')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Quote"
                             >
-                                <Quote className="w-4 h-4 text-slate-700" />
+                                <Quote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => applyFormat('formatBlock', 'pre')}
-                                className="p-2 hover:bg-slate-200 rounded transition-colors"
+                                className="p-1.5 sm:p-2 hover:bg-slate-200 rounded transition-colors flex-shrink-0"
                                 title="Code Block"
                             >
-                                <Code className="w-4 h-4 text-slate-700" />
+                                <Code className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
                             </button>
-                            <div className="w-px bg-slate-300 mx-1"></div>
+                            <div className="w-px bg-slate-300 mx-0.5 sm:mx-1"></div>
                             <select
                                 onChange={(e) => applyFormat('formatBlock', e.target.value)}
-                                className="px-2 py-1 text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+                                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors"
                                 defaultValue=""
                             >
                                 <option value="">Paragraph</option>
@@ -481,7 +441,7 @@ function BlogForm() {
                             ref={editorRef}
                             contentEditable
                             onInput={handleEditorInput}
-                            className="min-h-[300px] max-h-[500px] overflow-y-auto px-4 py-3 bg-white border border-slate-300 border-t-0 rounded-b-md text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all prose prose-slate max-w-none"
+                            className="min-h-[250px] sm:min-h-[300px] max-h-[400px] sm:max-h-[500px] overflow-y-auto px-3 sm:px-4 py-2 sm:py-3 bg-white border border-slate-300 border-t-0 rounded-b-md text-sm sm:text-base text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all prose prose-slate max-w-none"
                             style={{
                                 wordWrap: 'break-word',
                                 overflowWrap: 'break-word'
@@ -551,10 +511,10 @@ function BlogForm() {
                     </div>
 
                     {/* Image Upload */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <LinkIcon className="w-4 h-4 text-blue-600" />
-                            <label className="text-sm font-semibold text-slate-900">Featured Image URL</label>
+                            <LinkIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                            <label className="text-xs sm:text-sm font-semibold text-slate-900">Featured Image URL</label>
                         </div>
                         <input
                             type="url"
@@ -562,7 +522,7 @@ function BlogForm() {
                             placeholder="https://example.com/image.jpg"
                             value={data.imageUrl}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            className="w-full px-3 sm:px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                         <p className="text-xs text-slate-500 mt-2">
                             Tip: Right-click an image on the web → "Copy image address" and paste here
@@ -573,7 +533,7 @@ function BlogForm() {
                                 <img
                                     src={data.imageUrl}
                                     alt="Preview"
-                                    className="max-w-full h-auto max-h-48 rounded-lg border border-slate-200"
+                                    className="max-w-full h-auto max-h-32 sm:max-h-48 rounded-lg border border-slate-200"
                                     onError={(e) => {
                                         e.target.style.display = 'none';
                                         e.target.nextSibling.style.display = 'block';
@@ -585,11 +545,12 @@ function BlogForm() {
                             </div>
                         )}
                     </div>
+
                     {/* Author Input */}
-                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <User className="w-4 h-4 text-blue-600" />
-                            <label className="text-sm font-semibold text-slate-900">Author</label>
+                            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
+                            <label className="text-xs sm:text-sm font-semibold text-slate-900">Author</label>
                         </div>
                         <input
                             type="text"
@@ -598,17 +559,17 @@ function BlogForm() {
                             value={data.author}
                             onChange={handleChange}
                             required
-                            className="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            className="w-full px-3 sm:px-4 py-2 bg-slate-50 border border-slate-300 rounded-md text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         />
                     </div>
 
                     {/* Submit Buttons */}
-                    <div className="flex justify-end gap-3 pt-2">
+                    <div className="flex justify-end gap-2 sm:gap-3 pt-2">
                         <button
                             type="button"
                             onClick={handleClear}
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 rounded-full text-sm font-semibold text-slate-700 bg-white border border-slate-300 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-300 transition-colors hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Clear
                         </button>
@@ -616,9 +577,9 @@ function BlogForm() {
                             type="button"
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 rounded-full text-sm font-semibold text-white bg-blue-600 flex items-center gap-2 transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold text-white bg-blue-600 flex items-center gap-1.5 sm:gap-2 transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Send className="w-4 h-4" />
+                            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             {isSubmitting ? "Posting..." : "Post"}
                         </button>
                     </div>
