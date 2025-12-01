@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000API_BASE"; // Adjust based on your backend URL
-const API_BASE = import.meta.env.API_BASE || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 class CategoryService {
     // Get all categories
     async getAllCategories() {
