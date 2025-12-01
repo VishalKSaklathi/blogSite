@@ -102,7 +102,7 @@ function ViewBlog() {
         <div className="max-w-5xl mx-auto px-6 py-10">
             {/* Back Link */}
             <Link
-                to="/dashboard/blogs"
+                to="/blogs"
                 className="inline-flex items-center text-primary hover:underline text-sm font-medium mb-6"
             >
                 ← Back to Blogs

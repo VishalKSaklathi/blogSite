@@ -17,7 +17,7 @@ function Dashboard() {
                 <header className='bg-background sticky top-0 flex h-16 shrink-0 items-center gap-1 border-b px-4 w-full justify-between z-10'>
                     <SidebarTrigger className="-ml-2" />
                     <h2 className="text-lg font-medium bg-primary/25 px-6 py-2 rounded-full">Blogsite</h2>
-                    <Link to="/dashboard/create-blog">
+                    <Link to="/create-blog">
                         <div
                             className="flex gap-2 px-6 py-2 rounded-full
                             hover:bg-primary/25 

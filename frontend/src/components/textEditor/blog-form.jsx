@@ -255,7 +255,7 @@ function BlogForm() {
             if (editorRef.current) {
                 editorRef.current.innerHTML = '';
             }
-            navigate('/dashboard/blogs');
+            navigate('/blogs');
         } catch (error) {
             console.error("Error creating blog:", error);
             setError("Failed to create blog: " + error.message);

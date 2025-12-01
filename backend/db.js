@@ -16,6 +16,12 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
         },
     },
     logging: false,
+    pool: {
+        max: 5,
+        min: 1,
+        acquire: 30000,
+        idle: 10000
+    }
 });
 
 // 🔥 Export THIS object

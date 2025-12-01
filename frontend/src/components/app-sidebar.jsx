@@ -97,7 +97,7 @@ export function AppSidebar({ ...props }) {
   const navMain = [
     {
       title: "Home",
-      url: "/dashboard/blogs",
+      url: "/blogs",
       icon: Home,
       items: [],
     },
@@ -107,7 +107,7 @@ export function AppSidebar({ ...props }) {
       icon: Layers,
       items: categories.map((category) => ({
         title: category.name,
-        url: `/dashboard/blogs/category/${category.name.toLowerCase().replace(/\s+/g, '-')}`, // URL-friendly name
+        url: `/blogs/category/${category.name.toLowerCase().replace(/\s+/g, '-')}`, // URL-friendly name
         id: category.id,
         state: { categoryId: category.id, categoryName: category.name } // Pass as state
       })),

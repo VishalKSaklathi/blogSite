@@ -14,7 +14,7 @@ export function LoginForm({
   const handleSubmit = (event) => {
     event.preventDefault();
     // Handle login logic here
-    navigate("/dashboard/blogs");
+    navigate("/blogs");
   };
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props} onSubmit={handleSubmit}>

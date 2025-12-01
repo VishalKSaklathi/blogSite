@@ -36,10 +36,13 @@ app.get("/", (req, res) => {
         await sequelize.authenticate();
         console.log("✅ Database connected");
 
-        // Sync models (create/update tables if needed)
-        await sequelize.sync({ alter: true })
-            .then(() => console.log("✅ Database synced"))
-            .catch(err => console.error("❌ Sync failed:", err));
+        // Sync only in dev environment
+        if (process.env.NODE_ENV !== "production") {
+            await sequelize.sync({ alter: true });
+            console.log("🔧 Database synced (dev)");
+        } else {
+            console.log("🚀 Production mode — skipping DB sync");
+        }
 
         app.listen(PORT, () => {
             console.log(`🚀 Server is running on http://localhost:${PORT}`);

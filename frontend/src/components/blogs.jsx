@@ -186,7 +186,7 @@ function Blogs() {
                         {currentCategory && (
                             <div className="flex items-center gap-2">
                                 <Link
-                                    to="/dashboard/blogs"
+                                    to="/blogs"
                                     className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 text-primary-foreground px-4 py-2 rounded-full text-sm font-medium transition-colors"
                                 >
                                     ← Back to All
@@ -258,7 +258,7 @@ function Blogs() {
                     <div className="grid lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1 gap-6">
                         {blogs.map((blog) => (
                             <Link
-                                to={`/dashboard/blogs/${blog.id}`}
+                                to={`/blogs/${blog.id}`}
                                 key={blog.id}
                                 className="group"
                             >
