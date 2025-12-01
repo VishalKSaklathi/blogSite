@@ -1,5 +1,5 @@
-import sequelize from "./db.js";  //  import DB connection
-import "./module/associations.js"
+import sequelize from "./db.js";  // import DB connection
+import "./module/associations.js";
 import { router as Blogrouter } from "./module/index.js";
 import { commentRouter } from "./module/index.js";
 import categoryRoutes from "./module/categories/category.routes.js";
@@ -11,16 +11,19 @@ import bodyParser from "body-parser";
 if (process.env.NODE_ENV !== "production") {
     dotenv.config();
 }
+
 const FRONTEND_URL = process.env.FRONTEND_URL || "*";
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors()); app.use(cors({
-    origin: FRONTEND_URL, // your frontend URL
+// CORS Middleware (ONLY ONE)
+app.use(cors({
+    origin: FRONTEND_URL,   // FRONTEND_URL from env
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// Body parsers
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
