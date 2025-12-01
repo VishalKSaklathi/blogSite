@@ -11,12 +11,16 @@ import bodyParser from "body-parser";
 if (process.env.NODE_ENV !== "production") {
     dotenv.config();
 }
-
+const FRONTEND_URL = process.env.FRONTEND_URL || "*";
 const app = express();
 const PORT = 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors()); app.use(cors({
+    origin: FRONTEND_URL, // your frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
